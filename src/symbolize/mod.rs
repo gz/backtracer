@@ -1,9 +1,8 @@
-use std::fmt;
+use alloc::str;
+use alloc::string::String;
+use core::fmt;
 #[cfg(not(feature = "cpp_demangle"))]
-use std::marker::PhantomData;
-use std::os::raw::c_void;
-use std::path::Path;
-use std::str;
+use core::marker::PhantomData;
 use rustc_demangle::{try_demangle, Demangle};
 
 /// Resolve an address to a symbol, passing the symbol to the specified
@@ -36,7 +35,7 @@ use rustc_demangle::{try_demangle, Demangle};
 ///     });
 /// }
 /// ```
-pub fn resolve<F: FnMut(&Symbol)>(addr: *mut c_void, mut cb: F) {
+pub fn resolve<F: FnMut(&Symbol)>(addr: *mut u8, mut cb: F) {
     resolve_imp(addr, &mut cb)
 }
 
@@ -68,7 +67,7 @@ impl Symbol {
     }
 
     /// Returns the starting address of this function.
-    pub fn addr(&self) -> Option<*mut c_void> {
+    pub fn addr(&self) -> Option<*mut u8> {
         self.inner.addr()
     }
 
@@ -78,7 +77,7 @@ impl Symbol {
     /// unix platforms other than OSX) and when a binary is compiled with
     /// debuginfo. If neither of these conditions is met then this will likely
     /// return `None`.
-    pub fn filename(&self) -> Option<&Path> {
+    pub fn filename(&self) -> Option<&str> {
         self.inner.filename()
     }
 
@@ -109,7 +108,6 @@ impl fmt::Debug for Symbol {
         d.finish()
     }
 }
-
 
 cfg_if! {
     if #[cfg(feature = "cpp_demangle")] {
@@ -177,9 +175,7 @@ impl<'a> SymbolName<'a> {
         self.demangled
             .as_ref()
             .map(|s| s.as_str())
-            .or_else(|| {
-                str::from_utf8(self.bytes).ok()
-            })
+            .or_else(|| str::from_utf8(self.bytes).ok())
     }
 
     /// Returns the raw symbol name as a list of bytes
@@ -250,45 +246,10 @@ cfg_if! {
     }
 }
 
-cfg_if! {
-    if #[cfg(all(windows, feature = "dbghelp"))] {
-        mod dbghelp;
-        use self::dbghelp::resolve as resolve_imp;
-        use self::dbghelp::Symbol as SymbolImp;
-    } else if #[cfg(all(feature = "gimli-symbolize",
-                        unix,
-                        target_os = "linux"))] {
-        mod gimli;
-        use self::gimli::resolve as resolve_imp;
-        use self::gimli::Symbol as SymbolImp;
-    } else if #[cfg(all(feature = "libbacktrace",
-                        unix,
-                        not(target_os = "fuchsia"),
-                        not(target_os = "emscripten"),
-                        not(target_os = "macos"),
-                        not(target_os = "ios")))] {
-        mod libbacktrace;
-        use self::libbacktrace::resolve as resolve_imp;
-        use self::libbacktrace::Symbol as SymbolImp;
+//mod freestanding;
+//use self::freestanding::resolve as resolve_imp;
+//use self::freestanding::Symbol as SymbolImp;
 
-    // Note that we only enable coresymbolication on iOS when debug assertions
-    // are enabled because it's helpful in debug mode but it looks like apps get
-    // rejected from the app store if they use this API, see #92 for more info
-    } else if #[cfg(all(feature = "coresymbolication",
-                        any(target_os = "macos",
-                            all(target_os = "ios", debug_assertions))))] {
-        mod coresymbolication;
-        use self::coresymbolication::resolve as resolve_imp;
-        use self::coresymbolication::Symbol as SymbolImp;
-    } else if #[cfg(all(unix,
-                        not(target_os = "emscripten"),
-                        feature = "dladdr"))] {
-        mod dladdr;
-        use self::dladdr::resolve as resolve_imp;
-        use self::dladdr::Symbol as SymbolImp;
-    } else {
-        mod noop;
-        use self::noop::resolve as resolve_imp;
-        use self::noop::Symbol as SymbolImp;
-    }
-}
+mod noop;
+use self::noop::resolve as resolve_imp;
+use self::noop::Symbol as SymbolImp;

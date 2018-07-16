@@ -1,6 +1,4 @@
-use std::fmt;
-
-use std::os::raw::c_void;
+use core::fmt;
 
 /// Inspects the current call-stack, passing all active frames into the closure
 /// provided to calculate a stack trace.
@@ -26,7 +24,7 @@ use std::os::raw::c_void;
 /// # Example
 ///
 /// ```
-/// extern crate backtrace;
+/// extern crate backtracer;
 ///
 /// fn main() {
 ///     backtrace::trace(|frame| {
@@ -61,7 +59,7 @@ impl Frame {
     ///
     /// It is recommended to pass this value to `backtrace::resolve` to turn it
     /// into a symbol name.
-    pub fn ip(&self) -> *mut c_void {
+    pub fn ip(&self) -> *mut u8 {
         self.inner.ip()
     }
 
@@ -73,7 +71,7 @@ impl Frame {
     ///
     /// The returned value can sometimes be used if `backtrace::resolve` failed
     /// on the `ip` given above.
-    pub fn symbol_address(&self) -> *mut c_void {
+    pub fn symbol_address(&self) -> *mut u8 {
         self.inner.symbol_address()
     }
 }
@@ -83,31 +81,15 @@ impl fmt::Debug for Frame {
         f.debug_struct("Frame")
             .field("ip", &self.ip())
             .field("symbol_address", &self.symbol_address())
+            .field("inner", &self.inner)
             .finish()
     }
 }
 
-cfg_if! {
-    if #[cfg(all(unix,
-                 not(target_os = "emscripten"),
-                 not(all(target_os = "ios", target_arch = "arm")),
-                 feature = "libunwind"))] {
-        mod libunwind;
-        use self::libunwind::trace as trace_imp;
-        use self::libunwind::Frame as FrameImp;
-    } else if #[cfg(all(unix,
-                        not(target_os = "emscripten"),
-                        feature = "unix-backtrace"))] {
-        mod unix_backtrace;
-        use self::unix_backtrace::trace as trace_imp;
-        use self::unix_backtrace::Frame as FrameImp;
-    } else if #[cfg(all(windows, feature = "dbghelp"))] {
-        mod dbghelp;
-        use self::dbghelp::trace as trace_imp;
-        use self::dbghelp::Frame as FrameImp;
-    } else {
-        mod noop;
-        use self::noop::trace as trace_imp;
-        use self::noop::Frame as FrameImp;
-    }
-}
+//mod libunwind;
+//use self::libunwind::trace as trace_imp;
+//use self::libunwind::Frame as FrameImp;
+
+mod freestanding;
+use self::freestanding::trace as trace_imp;
+use self::freestanding::Frame as FrameImp;

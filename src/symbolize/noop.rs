@@ -1,9 +1,6 @@
-use std::path::Path;
-use std::os::raw::c_void;
-
 use SymbolName;
 
-pub fn resolve(_addr: *mut c_void, _cb: &mut FnMut(&super::Symbol)) {
+pub fn resolve(_addr: *mut u8, _cb: &mut FnMut(&super::Symbol)) {
 }
 
 pub struct Symbol;
@@ -13,11 +10,11 @@ impl Symbol {
         None
     }
 
-    pub fn addr(&self) -> Option<*mut c_void> {
+    pub fn addr(&self) -> Option<*mut u8> {
         None
     }
 
-    pub fn filename(&self) -> Option<&Path> {
+    pub fn filename(&self) -> Option<&str> {
         None
     }
 

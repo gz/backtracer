@@ -1,7 +1,6 @@
-extern crate backtrace;
+extern crate backtracer;
 
-use backtrace::Backtrace;
 
 fn main() {
-    println!("{:?}", Backtrace::new());
+    //println!("{:?}", Backtrace::new());
 }

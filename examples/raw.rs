@@ -1,4 +1,4 @@
-extern crate backtrace;
+extern crate backtracer;
 
 fn main() {
     foo();
@@ -13,13 +13,13 @@ fn baz() { print() }
 
 fn print() {
     let mut cnt = 0;
-    backtrace::trace(|frame| {
+    backtracer::trace(|frame| {
         let ip = frame.ip();
         print!("frame #{:<2} - {:#02$x}", cnt, ip as usize, HEX_WIDTH);
         cnt += 1;
 
         let mut resolved = false;
-        backtrace::resolve(frame.ip(), |symbol| {
+        backtracer::resolve(frame.ip(), |symbol| {
             if !resolved {
                 resolved = true;
             } else {
@@ -33,7 +33,7 @@ fn print() {
             }
             if let Some(file) = symbol.filename() {
                 if let Some(l) = symbol.lineno() {
-                    print!("\n{:13}{:4$}@ {}:{}", "", "", file.display(), l,
+                    print!("\n{:13}{:4$}@ {}:{}", "", "", file, l,
                            HEX_WIDTH);
                 }
             }
