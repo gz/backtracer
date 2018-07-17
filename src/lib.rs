@@ -14,7 +14,7 @@ extern crate rustc_demangle;
 //extern crate object;
 extern crate elfloader;
 
-pub use backtrace::{trace, Frame};
+pub use backtrace::{trace, trace_from, EntryPoint, Frame};
 mod backtrace;
 
 pub use symbolize::{resolve, Symbol, SymbolName};

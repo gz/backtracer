@@ -8,6 +8,14 @@ pub struct Frame {
 }
 
 impl Frame {
+    pub fn new(rbp: u64, rsp: u64, rip: u64) -> Frame {
+        Frame {
+            rbp: rbp,
+            rsp: rsp,
+            rip: rip,
+        }
+    }
+
     pub fn ip(&self) -> *mut u8 {
         (self.rip - 1) as *mut u8
     }
@@ -18,13 +26,7 @@ impl Frame {
 }
 
 #[inline(always)]
-pub fn trace(cb: &mut FnMut(&super::Frame) -> bool) {
-    let mut curframe = Frame {
-        rbp: registers::rbp(),
-        rsp: registers::rsp(),
-        rip: registers::rip(),
-    };
-
+pub fn trace_from(mut curframe: Frame, cb: &mut FnMut(&super::Frame) -> bool) {
     loop {
         let mut bomb = ::Bomb { enabled: true };
         let ctxt = super::Frame {
@@ -44,4 +46,10 @@ pub fn trace(cb: &mut FnMut(&super::Frame) -> bool) {
             break;
         }
     }
+}
+
+#[inline(always)]
+pub fn trace(cb: &mut FnMut(&super::Frame) -> bool) {
+    let curframe = Frame::new(registers::rbp(), registers::rsp(), registers::rip());
+    trace_from(curframe.clone(), cb);
 }

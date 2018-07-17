@@ -40,6 +40,13 @@ pub fn trace<F: FnMut(&Frame) -> bool>(mut cb: F) {
     trace_imp(&mut cb)
 }
 
+/// Same as trace but starts from an user provided point in time.
+#[inline(never)] // if this is never inlined then the first frame can be known
+                 // to be skipped
+pub fn trace_from<F: FnMut(&Frame) -> bool>(t: EntryPoint, mut cb: F) {
+    trace_from_imp(t, &mut cb)
+}
+
 /// A trait representing one frame of a backtrace, yielded to the `trace`
 /// function of this crate.
 ///
@@ -92,4 +99,6 @@ impl fmt::Debug for Frame {
 
 mod freestanding;
 use self::freestanding::trace as trace_imp;
+use self::freestanding::trace_from as trace_from_imp;
 use self::freestanding::Frame as FrameImp;
+pub use self::freestanding::Frame as EntryPoint;
