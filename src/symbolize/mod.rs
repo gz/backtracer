@@ -35,8 +35,8 @@ use rustc_demangle::{try_demangle, Demangle};
 ///     });
 /// }
 /// ```
-pub fn resolve<F: FnMut(&Symbol)>(addr: *mut u8, mut cb: F) {
-    resolve_imp(addr, &mut cb)
+pub fn resolve<F: FnMut(&Symbol)>(binary: &'static [u8], addr: *mut u8, mut cb: F) {
+    resolve_imp(binary, addr, &mut cb)
 }
 
 /// A trait representing the resolution of a symbol in a file.
@@ -246,10 +246,10 @@ cfg_if! {
     }
 }
 
-//mod freestanding;
-//use self::freestanding::resolve as resolve_imp;
-//use self::freestanding::Symbol as SymbolImp;
+mod freestanding;
+use self::freestanding::resolve as resolve_imp;
+use self::freestanding::Symbol as SymbolImp;
 
-mod noop;
-use self::noop::resolve as resolve_imp;
-use self::noop::Symbol as SymbolImp;
+//mod noop;
+//use self::noop::resolve as resolve_imp;
+//use self::noop::Symbol as SymbolImp;

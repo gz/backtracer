@@ -12,6 +12,7 @@ extern crate rustc_demangle;
 //extern crate addr2line;
 //extern crate gimli;
 //extern crate object;
+extern crate elfloader;
 
 pub use backtrace::{trace, Frame};
 mod backtrace;

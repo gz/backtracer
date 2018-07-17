@@ -1,79 +1,43 @@
-use addr2line;
-use findshlibs::{self, Segment, SharedLibrary};
-use gimli;
-use object::{self, Object};
-use std::u32;
-
+use core::u32;
+use core::u64;
+use elfloader;
 use SymbolName;
 
-type Dwarf = addr2line::Context<gimli::EndianRcSlice<gimli::RunTimeEndian>>;
-type Symbols<'map> = object::SymbolMap<'map>;
+pub fn resolve(binary: &'static [u8], addr: *mut u8, cb: &mut FnMut(&super::Symbol)) {
+    let m = elfloader::ElfBinary::new("kernel", binary).expect("Can't parse");
+    let mut dist = u64::MAX;
+    let mut cursymbol: Option<&elfloader::elf::Symbol> = None;
+    m.for_each_symbol(|esym| {
+        let addr_val = addr as u64;
+        if addr_val > esym.value && addr_val - esym.value < dist {
+            dist = addr_val - esym.value;
+            cursymbol = Some(esym);
+        }
+    });
 
-struct Mapping {
-    dwarf: Dwarf,
-    // 'static lifetime is a lie to hack around lack of support for self-referential structs.
-    symbols: Symbols<'static>,
-    _map: Mmap,
-}
-
-impl Mapping {
-    fn new(binary: &'static [u8]) -> Mapping {
-        let (dwarf, symbols) = {
-            let object = object::File::parse(&*map).ok()?;
-            let dwarf = addr2line::Context::new(&binary).ok()?;
-            let symbols = object.symbol_map();
-            (dwarf, unsafe { mem::transmute(symbols) })
+    cursymbol.map(|esym| {
+        let sym = super::Symbol {
+            inner: Symbol::new(esym.value as usize, None, None, Some(m.symbol_name(esym))),
         };
-        Mapping {
-            dwarf,
-            symbols,
-            _map: map,
-        }
-    }
+        return cb(&sym);
+    });
 }
 
-pub fn resolve(addr: *mut u8, cb: &mut FnMut(&super::Symbol)) {
-    let m = Mapping::new(&[0]);
-
-    let mut found_sym = false;
-
-    if let Ok(mut frames) = m.dwarf.find_frames(addr as u64) {
-        while let Ok(Some(frame)) = frames.next() {
-            let (file, line) = frame
-                .location
-                .map(|l| (l.file, l.line))
-                .unwrap_or((None, None));
-            let name = frame
-                .function
-                .and_then(|f| f.raw_name().ok().map(|f| f.to_string()));
-            let sym = super::Symbol {
-                inner: Symbol::new(addr.0 as usize, file, line, name),
-            };
-            cb(&sym);
-            found_sym = true;
-        }
-    }
-
-    // No DWARF info found, so fallback to the symbol table.
-    if !found_sym {
-        if let Some(name) = m.symbols.get(addr.0 as u64).and_then(|x| x.name()) {
-            let sym = super::Symbol {
-                inner: Symbol::new(addr.0 as usize, None, None, Some(name.to_string())),
-            };
-            cb(&sym);
-        }
-    }
-}
-
+#[derive(Debug)]
 pub struct Symbol {
     addr: usize,
-    file: Option<String>,
+    file: Option<&'static str>,
     line: Option<u64>,
-    name: Option<String>,
+    name: Option<&'static str>,
 }
 
 impl Symbol {
-    fn new(addr: usize, file: Option<String>, line: Option<u64>, name: Option<String>) -> Symbol {
+    fn new(
+        addr: usize,
+        file: Option<&'static str>,
+        line: Option<u64>,
+        name: Option<&'static str>,
+    ) -> Symbol {
         Symbol {
             addr,
             file,
@@ -86,11 +50,11 @@ impl Symbol {
         self.name.as_ref().map(|s| SymbolName::new(s.as_bytes()))
     }
 
-    pub fn addr(&self) -> Option<*mut c_void> {
-        Some(self.addr as *mut c_void)
+    pub fn addr(&self) -> Option<*mut u8> {
+        Some(self.addr as *mut u8)
     }
 
-    pub fn filename(&self) -> Option<&Path> {
+    pub fn filename(&self) -> Option<&str> {
         self.file.as_ref().map(|f| f.as_ref())
     }
 
