@@ -6,18 +6,18 @@ use SymbolName;
 pub fn resolve(binary: &'static [u8], addr: *mut u8, cb: &mut FnMut(&super::Symbol)) {
     let m = elfloader::ElfBinary::new("kernel", binary).expect("Can't parse");
     let mut dist = u64::MAX;
-    let mut cursymbol: Option<&elfloader::elf::Symbol> = None;
+    let mut cursymbol: Option<&elfloader::Entry> = None;
     m.for_each_symbol(|esym| {
         let addr_val = addr as u64;
-        if addr_val > esym.value && addr_val - esym.value < dist {
-            dist = addr_val - esym.value;
+        if addr_val > esym.value() && addr_val - esym.value() < dist {
+            dist = addr_val - esym.value();
             cursymbol = Some(esym);
         }
-    });
+    }).ok();
 
     cursymbol.map(|esym| {
         let sym = super::Symbol {
-            inner: Symbol::new(esym.value as usize, None, None, Some(m.symbol_name(esym))),
+            inner: Symbol::new(esym.value() as usize, None, None, Some(m.symbol_name(esym))),
         };
         return cb(&sym);
     });
