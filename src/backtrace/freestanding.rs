@@ -42,7 +42,7 @@ pub fn trace_from(mut curframe: Frame, cb: &mut FnMut(&super::Frame) -> bool) {
                 curframe.rsp = curframe.rbp;
                 curframe.rbp = *(curframe.rbp as *mut u64);
 
-                if curframe.rip == 0 {
+                if curframe.rip == 0 || curframe.rbp <= 0xfff {
                     break;
                 }
             }
