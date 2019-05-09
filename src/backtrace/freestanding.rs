@@ -32,15 +32,19 @@ pub fn trace_from(mut curframe: Frame, cb: &mut FnMut(&super::Frame) -> bool) {
         let ctxt = super::Frame {
             inner: curframe.clone(),
         };
+
         let keep_going = cb(&ctxt);
         bomb.enabled = false;
-        let reached_end = curframe.rbp == 0;
 
-        if keep_going && !reached_end {
+        if keep_going {
             unsafe {
                 curframe.rip = *((curframe.rbp + 8) as *mut u64);
                 curframe.rsp = curframe.rbp;
                 curframe.rbp = *(curframe.rbp as *mut u64);
+
+                if curframe.rip == 0 {
+                    break;
+                }
             }
         } else {
             break;

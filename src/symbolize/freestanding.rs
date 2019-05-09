@@ -3,17 +3,18 @@ use core::u64;
 use elfloader;
 use SymbolName;
 
-pub fn resolve(binary: &'static [u8], addr: *mut u8, cb: &mut FnMut(&super::Symbol)) {
+pub fn resolve(binary: &'static [u8], offset: u64, addr: *mut u8, cb: &mut FnMut(&super::Symbol)) {
     let m = elfloader::ElfBinary::new("kernel", binary).expect("Can't parse");
     let mut dist = u64::MAX;
     let mut cursymbol: Option<&elfloader::Entry> = None;
     m.for_each_symbol(|esym| {
-        let addr_val = addr as u64;
+        let addr_val = addr as u64 - offset;
         if addr_val > esym.value() && addr_val - esym.value() < dist {
             dist = addr_val - esym.value();
             cursymbol = Some(esym);
         }
-    }).ok();
+    })
+    .ok();
 
     cursymbol.map(|esym| {
         let sym = super::Symbol {

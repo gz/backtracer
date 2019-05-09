@@ -20,4 +20,4 @@ cfg-if = "0.1"
 rustc-demangle = "0.1.4"
 x86 = { path = "../x86" }
 elfloader = { path = "../elfloader" }
-klogger = { path = "../klogger" }
+log = "0.4"

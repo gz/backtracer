@@ -35,8 +35,8 @@ use rustc_demangle::{try_demangle, Demangle};
 ///     });
 /// }
 /// ```
-pub fn resolve<F: FnMut(&Symbol)>(binary: &'static [u8], addr: *mut u8, mut cb: F) {
-    resolve_imp(binary, addr, &mut cb)
+pub fn resolve<F: FnMut(&Symbol)>(binary: &'static [u8], offset: u64, addr: *mut u8, mut cb: F) {
+    resolve_imp(binary, offset, addr, &mut cb)
 }
 
 /// A trait representing the resolution of a symbol in a file.

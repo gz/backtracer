@@ -6,8 +6,12 @@ extern crate x86;
 
 #[macro_use]
 extern crate cfg_if;
-extern crate rustc_demangle;
+
 extern crate elfloader;
+extern crate rustc_demangle;
+
+#[macro_use]
+extern crate log;
 
 pub use backtrace::{trace, trace_from, EntryPoint, Frame};
 mod backtrace;
