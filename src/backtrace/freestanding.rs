@@ -1,5 +1,3 @@
-use x86::current::registers;
-
 #[derive(Debug, Clone)]
 pub struct Frame {
     rbp: u64,
@@ -54,6 +52,7 @@ pub fn trace_from(mut curframe: Frame, cb: &mut FnMut(&super::Frame) -> bool) {
 
 #[inline(always)]
 pub fn trace(cb: &mut FnMut(&super::Frame) -> bool) {
+    use x86::current::registers;
     let curframe = Frame::new(registers::rbp(), registers::rsp(), registers::rip());
     trace_from(curframe.clone(), cb);
 }

@@ -1,54 +1,99 @@
+use alloc::borrow::Cow;
+use alloc::string::String;
+
+use addr2line::Context;
+
 use core::u32;
-use core::u64;
-use elfloader;
-use SymbolName;
 
-pub fn resolve(binary: &'static [u8], offset: u64, addr: *mut u8, cb: &mut FnMut(&super::Symbol)) {
-    let m = elfloader::ElfBinary::new("kernel", binary).expect("Can't parse");
-    let mut dist = u64::MAX;
-    let mut cursymbol: Option<&elfloader::Entry> = None;
-    m.for_each_symbol(|esym| {
-        let addr_val = addr as u64 - offset;
-        if addr_val > esym.value() && addr_val - esym.value() < dist {
-            dist = addr_val - esym.value();
-            cursymbol = Some(esym);
-        }
-    })
-    .ok();
+pub fn resolve(
+    ctxt: Option<&Context>,
+    offset: u64,
+    addr: *mut u8,
+    cb: &mut FnMut(&super::Symbol),
+) -> Result<(), addr2line::gimli::read::Error> {
 
-    cursymbol.map(|esym| {
-        let sym = super::Symbol {
-            inner: Symbol::new(esym.value() as usize, None, None, Some(m.symbol_name(esym))),
-        };
-        return cb(&sym);
-    });
+    let addr = (addr as u64 - offset) as usize;
+
+    // Try to resolve an address within a context:
+    let (file, line, fn_name): (
+        Option<String>,
+        Option<u64>,
+        Option<
+            addr2line::FunctionName<
+                addr2line::gimli::EndianReader<
+                    addr2line::gimli::RunTimeEndian,
+                    alloc::rc::Rc<[u8]>,
+                >,
+            >,
+        >,
+    ) = ctxt.map_or_else(
+        || (None, None, None),
+        |ctxt| {
+            let frame_iter = ctxt.find_frames(addr as u64);
+            if frame_iter.is_ok() {
+                let mut frame_iter = frame_iter.unwrap();
+                let frame_result = frame_iter.next();
+                if frame_result.is_ok() {
+                    let maybe_first_frame = frame_result.unwrap();
+                    if maybe_first_frame.is_some() {
+                        let first_frame = maybe_first_frame.unwrap();
+                        let fn_name = first_frame.function;
+                        let location = ctxt.find_location(addr as u64);
+
+                        return match location {
+                            Ok(Some(l)) => (l.file, l.line, fn_name),
+                            _ => (None, None, fn_name),
+                        };
+                    }
+                }
+            }
+            (None, None, None)
+        },
+    );
+
+
+    let sym = super::Symbol {
+        inner: Symbol::new(addr, file, line, fn_name),
+    };
+
+    Ok(cb(&sym))
 }
 
-#[derive(Debug)]
 pub struct Symbol {
     addr: usize,
-    file: Option<&'static str>,
+    file: Option<String>,
     line: Option<u64>,
-    name: Option<&'static str>,
+    fn_name: Option<
+        addr2line::FunctionName<
+            addr2line::gimli::EndianReader<addr2line::gimli::RunTimeEndian, alloc::rc::Rc<[u8]>>,
+        >,
+    >,
 }
 
 impl Symbol {
     fn new(
         addr: usize,
-        file: Option<&'static str>,
+        file: Option<String>,
         line: Option<u64>,
-        name: Option<&'static str>,
+        fn_name: Option<
+            addr2line::FunctionName<
+                addr2line::gimli::EndianReader<
+                    addr2line::gimli::RunTimeEndian,
+                    alloc::rc::Rc<[u8]>,
+                >,
+            >,
+        >,
     ) -> Symbol {
         Symbol {
             addr,
             file,
             line,
-            name,
+            fn_name,
         }
     }
 
-    pub fn name(&self) -> Option<SymbolName> {
-        self.name.as_ref().map(|s| SymbolName::new(s.as_bytes()))
+    pub fn name(&self) -> Option<Cow<str>> {
+        self.fn_name.as_ref().map(|f| f.demangle().unwrap())
     }
 
     pub fn addr(&self) -> Option<*mut u8> {

@@ -17,7 +17,6 @@ A library to acquire a stack trace (backtrace) at runtime in a no-std Rust progr
 
 [dependencies]
 cfg-if = "0.1"
-rustc-demangle = "0.1.4"
 x86 = { path = "../x86" }
-elfloader = { path = "../elfloader" }
 log = "0.4"
+addr2line = { path = "../addr2line", default-features = false, features = ["alloc", "rustc-demangle"] }
