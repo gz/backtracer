@@ -9,9 +9,8 @@ pub fn resolve(
     ctxt: Option<&Context>,
     offset: u64,
     addr: *mut u8,
-    cb: &mut FnMut(&super::Symbol),
+    cb: &mut dyn FnMut(&super::Symbol),
 ) -> Result<(), addr2line::gimli::read::Error> {
-
     let addr = (addr as u64 - offset) as usize;
 
     // Try to resolve an address within a context:
@@ -50,7 +49,6 @@ pub fn resolve(
             (None, None, None)
         },
     );
-
 
     let sym = super::Symbol {
         inner: Symbol::new(addr, file, line, fn_name),
