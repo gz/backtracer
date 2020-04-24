@@ -1,6 +1,6 @@
 [package]
 name = "backtracer"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>",
            "Alex Crichton <alex@alexcrichton.com>",
            "The Rust Project Developers"]
@@ -17,6 +17,6 @@ A library to acquire a stack trace (backtrace) at runtime in a no-std Rust progr
 
 [dependencies]
 cfg-if = "0.1"
-x86 = "0.26.0"
+x86 = "0.32.0"
 log = "0.4"
 addr2line = { git = "https://github.com/gz/addr2line.git", branch = "patch-1", default-features = false, features = ["alloc", "rustc-demangle"] }
