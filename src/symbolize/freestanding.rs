@@ -1,12 +1,13 @@
 use alloc::borrow::Cow;
 use alloc::string::String;
 
+use addr2line::gimli;
 use addr2line::Context;
 
 use core::u32;
 
 pub fn resolve(
-    ctxt: Option<&Context>,
+    ctxt: Option<&Context<gimli::EndianRcSlice<gimli::RunTimeEndian>>>,
     offset: u64,
     addr: *mut u8,
     cb: &mut dyn FnMut(&super::Symbol),
@@ -15,8 +16,8 @@ pub fn resolve(
 
     // Try to resolve an address within a context:
     let (file, line, fn_name): (
-        Option<String>,
-        Option<u64>,
+        Option<&str>,
+        Option<u32>,
         Option<
             addr2line::FunctionName<
                 addr2line::gimli::EndianReader<
@@ -51,7 +52,12 @@ pub fn resolve(
     );
 
     let sym = super::Symbol {
-        inner: Symbol::new(addr, file, line, fn_name),
+        inner: Symbol::new(
+            addr,
+            file.map(String::from),
+            line.map(|c| c as u64),
+            fn_name,
+        ),
     };
 
     Ok(cb(&sym))
@@ -63,7 +69,7 @@ pub struct Symbol {
     line: Option<u64>,
     fn_name: Option<
         addr2line::FunctionName<
-            addr2line::gimli::EndianReader<addr2line::gimli::RunTimeEndian, alloc::rc::Rc<[u8]>>,
+            addr2line::gimli::EndianReader<gimli::RunTimeEndian, alloc::rc::Rc<[u8]>>,
         >,
     >,
 }

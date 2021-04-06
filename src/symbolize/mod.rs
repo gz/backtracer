@@ -1,7 +1,9 @@
 use alloc::borrow::Cow;
 use alloc::str;
-
 use core::fmt;
+
+use addr2line::gimli;
+use addr2line::Context;
 
 mod freestanding;
 use self::freestanding::resolve as resolve_imp;
@@ -38,7 +40,7 @@ use self::freestanding::Symbol as SymbolImp;
 /// }
 /// ```
 pub fn resolve<F: FnMut(&Symbol)>(
-    ctxt: Option<&addr2line::Context>,
+    ctxt: Option<&Context<gimli::EndianRcSlice<gimli::RunTimeEndian>>>,
     offset: u64,
     addr: *mut u8,
     mut cb: F,
