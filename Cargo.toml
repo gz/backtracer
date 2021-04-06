@@ -1,5 +1,5 @@
 [package]
-name = "backtracer"
+name = "backtracer_core"
 version = "0.0.2"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>",
            "Alex Crichton <alex@alexcrichton.com>",
