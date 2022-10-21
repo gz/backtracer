@@ -1,6 +1,6 @@
 [package]
 name = "backtracer_core"
-version = "0.0.6"
+version = "0.0.7"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>",
            "Alex Crichton <alex@alexcrichton.com>",
            "The Rust Project Developers"]
